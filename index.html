@@ -4,428 +4,316 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>体重トラッカー</title>
-
-  <!-- PWA -->
   <meta name="theme-color" content="#0d0d1a" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="体重トラッカー" />
-  <link rel="apple-touch-icon" href="https://fav.farm/⚖️" />
-
-  <!-- Recharts via CDN -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.12.7/Recharts.min.js"></script>
-
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     body {
       background: #0d0d1a;
       color: #f0eeff;
-      font-family: 'Hiragino Sans', 'Noto Sans JP', 'Yu Gothic', sans-serif;
+      font-family: 'Hiragino Sans', 'Yu Gothic', sans-serif;
       min-height: 100vh;
-      padding-bottom: env(safe-area-inset-bottom, 20px);
+      padding-bottom: 40px;
     }
-    input[type=number]::-webkit-inner-spin-button,
-    input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
-    input { -webkit-appearance: none; }
-
     .header {
-      background: linear-gradient(135deg, #1a1040 0%, #0d0d1a 100%);
+      background: linear-gradient(135deg, #1a1040, #0d0d1a);
       border-bottom: 1px solid #2a2050;
-      padding: 48px 24px 20px;
+      padding: 48px 20px 18px;
       position: sticky; top: 0; z-index: 10;
+      display: flex; align-items: center; gap: 10px;
     }
-    .header-inner { max-width: 480px; margin: 0 auto; display: flex; align-items: center; gap: 10px; }
-    .header h1 { font-size: 20px; font-weight: 800; letter-spacing: -0.3px; color: #e8e0ff; }
+    .header h1 { font-size: 20px; font-weight: 800; color: #e8e0ff; }
     .header .sub { font-size: 11px; color: #7c6af7; margin-top: 2px; }
-
-    .main { max-width: 480px; margin: 0 auto; padding: 0 16px 60px; }
-
-    .toast {
-      position: fixed; top: 90px; left: 50%; transform: translateX(-50%);
-      padding: 10px 22px; border-radius: 30px; font-size: 14px; z-index: 100;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.5); white-space: nowrap;
-      pointer-events: none;
-      animation: fadeInOut 2.2s ease forwards;
-    }
-    .toast.ok { background: #1a2a3a; border: 1px solid #7c6af7; color: #b8aaff; }
-    .toast.err { background: #3a1a2a; border: 1px solid #e05577; color: #f07090; }
-    @keyframes fadeInOut {
-      0% { opacity: 0; transform: translateX(-50%) translateY(-8px); }
-      15% { opacity: 1; transform: translateX(-50%) translateY(0); }
-      80% { opacity: 1; }
-      100% { opacity: 0; }
-    }
+    .main { max-width: 480px; margin: 0 auto; padding: 0 16px; }
 
     .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
-    .card {
-      border-radius: 16px; padding: 16px 18px;
-    }
-    .card.weight {
-      background: linear-gradient(145deg, #16122a, #1e1640);
-      border: 1px solid #2e2860;
-    }
-    .card.goal {
-      background: linear-gradient(145deg, #0d1a16, #111e18);
-      border: 1px solid #1e4030;
-      cursor: pointer;
-    }
-    .card-label { font-size: 11px; margin-bottom: 6px; letter-spacing: 0.5px; }
-    .card-label.purple { color: #7c6af7; }
-    .card-label.green { color: #4caf80; }
-    .card-value { font-size: 28px; font-weight: 800; line-height: 1; }
-    .card-value.purple { color: #e8e0ff; }
-    .card-value.green { color: #a0f0c0; }
+    .card { border-radius: 16px; padding: 16px 18px; }
+    .card.w { background: linear-gradient(145deg,#16122a,#1e1640); border: 1px solid #2e2860; }
+    .card.g { background: linear-gradient(145deg,#0d1a16,#111e18); border: 1px solid #1e4030; cursor: pointer; }
+    .card-label { font-size: 11px; margin-bottom: 6px; letter-spacing: .5px; }
+    .card-val { font-size: 28px; font-weight: 800; line-height: 1; }
     .card-unit { font-size: 12px; color: #666; margin-top: 3px; }
     .card-sub { font-size: 11px; margin-top: 6px; }
-    .card-empty { font-size: 14px; color: #443d66; margin-top: 6px; }
-    .card-empty.green { color: #2a4a38; }
+    .card-empty { font-size: 14px; margin-top: 6px; }
 
-    .goal-editor {
-      background: #111e18; border: 1px solid #2a5040;
-      border-radius: 16px; padding: 18px; margin-top: 12px;
-    }
-    .goal-editor-label { font-size: 13px; color: #4caf80; margin-bottom: 10px; }
-    .goal-editor-row { display: flex; gap: 10px; }
+    .goal-editor { background:#111e18; border:1px solid #2a5040; border-radius:16px; padding:18px; margin-top:12px; }
+    .goal-row { display:flex; gap:10px; }
 
-    .input-card {
-      background: linear-gradient(145deg, #16122a, #1e1640);
-      border: 1px solid #2e2860; border-radius: 20px;
-      padding: 20px; margin-top: 16px;
-    }
-    .input-card-label { font-size: 13px; color: #7c6af7; margin-bottom: 14px; font-weight: 600; }
-    .input-row { display: flex; gap: 10px; }
+    .input-card { background:linear-gradient(145deg,#16122a,#1e1640); border:1px solid #2e2860; border-radius:20px; padding:20px; margin-top:16px; }
+    .input-label { font-size:13px; color:#7c6af7; margin-bottom:14px; font-weight:600; }
+    .input-row { display:flex; gap:10px; }
 
-    input[type=number], input[type=date] {
-      background: #0d0a1e; border: 1px solid #2e2860;
-      border-radius: 10px; padding: 12px 14px; color: #e8e0ff;
-      font-size: 16px; outline: none; width: 100%;
-      color-scheme: dark;
+    input[type=number], input[type=date], input.goal-inp {
+      background:#0d0a1e; border:1px solid #2e2860; border-radius:10px;
+      padding:12px 14px; color:#e8e0ff; font-size:16px; outline:none; width:100%;
+      -webkit-appearance:none; color-scheme:dark;
     }
-    input[type=date] { font-size: 14px; color: #c8c0ff; margin-bottom: 12px; }
-    input.weight-input { font-size: 20px; font-weight: 700; }
-    input.goal-input {
-      flex: 1; background: #0d1a16; border: 1px solid #2a5040;
-      border-radius: 10px; padding: 10px 14px; color: #e8f5e0; font-size: 16px; outline: none;
-    }
+    input[type=date] { font-size:14px; color:#c8c0ff; margin-bottom:12px; }
+    input.w-inp { font-size:20px; font-weight:700; }
+    input.goal-inp { flex:1; background:#0d1a16; border-color:#2a5040; color:#e8f5e0; padding:10px 14px; }
 
-    .btn-record {
-      background: linear-gradient(135deg, #7c6af7, #5a48d0);
-      border: none; border-radius: 14px; color: #fff;
-      font-weight: 800; font-size: 16px; padding: 0 24px;
-      cursor: pointer; white-space: nowrap;
-      box-shadow: 0 4px 20px rgba(124,106,247,0.4);
-    }
-    .btn-save {
-      background: #2a7a50; border: none; border-radius: 10px;
-      color: #fff; font-weight: 700; font-size: 14px;
-      padding: 0 18px; cursor: pointer; white-space: nowrap;
-    }
-    .btn-cancel {
-      background: #1a2a22; border: 1px solid #2a5040; border-radius: 10px;
-      color: #aaa; font-size: 14px; padding: 0 14px; cursor: pointer;
-    }
+    .btn { border:none; border-radius:10px; cursor:pointer; font-weight:700; font-size:14px; padding:0 18px; white-space:nowrap; height:44px; }
+    .btn-rec { background:linear-gradient(135deg,#7c6af7,#5a48d0); color:#fff; border-radius:14px; font-size:16px; padding:0 24px; box-shadow:0 4px 20px rgba(124,106,247,.4); }
+    .btn-save { background:#2a7a50; color:#fff; }
+    .btn-cancel { background:#1a2a22; border:1px solid #2a5040; color:#aaa; }
 
-    .chart-card {
-      background: linear-gradient(145deg, #16122a, #1e1640);
-      border: 1px solid #2e2860; border-radius: 20px;
-      padding: 20px 10px 10px; margin-top: 16px;
-    }
-    .chart-title { font-size: 13px; color: #7c6af7; margin-bottom: 16px; font-weight: 600; padding-left: 10px; }
+    /* Canvas chart */
+    .chart-card { background:linear-gradient(145deg,#16122a,#1e1640); border:1px solid #2e2860; border-radius:20px; padding:20px 16px 16px; margin-top:16px; }
+    .chart-title { font-size:13px; color:#7c6af7; margin-bottom:12px; font-weight:600; }
+    canvas { width:100%; display:block; }
 
-    .history { margin-top: 16px; }
-    .history-title { font-size: 13px; color: #7c6af7; font-weight: 600; margin-bottom: 10px; }
-    .history-list { display: flex; flex-direction: column; gap: 8px; }
-    .history-item {
-      display: flex; align-items: center; justify-content: space-between;
-      background: #16122a; border: 1px solid #2e2860;
-      border-radius: 12px; padding: 12px 16px;
-    }
-    .history-date { color: #554d88; font-size: 13px; min-width: 80px; }
-    .history-weight { font-weight: 700; font-size: 18px; color: #e8e0ff; }
-    .history-weight span { font-size: 12px; color: #554d88; }
-    .history-diff { font-size: 12px; min-width: 60px; text-align: right; }
-    .history-diff.good { color: #4caf80; }
-    .history-diff.bad { color: #e05577; }
-    .btn-delete {
-      background: none; border: none; color: #332a55;
-      cursor: pointer; font-size: 16px; padding: 0 0 0 10px; line-height: 1;
-    }
+    .history { margin-top:16px; }
+    .history-title { font-size:13px; color:#7c6af7; font-weight:600; margin-bottom:10px; }
+    .history-item { display:flex; align-items:center; justify-content:space-between; background:#16122a; border:1px solid #2e2860; border-radius:12px; padding:12px 16px; margin-bottom:8px; }
+    .h-date { color:#554d88; font-size:13px; min-width:90px; }
+    .h-val { font-weight:700; font-size:18px; color:#e8e0ff; }
+    .h-val span { font-size:12px; color:#554d88; }
+    .h-diff { font-size:12px; min-width:60px; text-align:right; }
+    .btn-del { background:none; border:none; color:#332a55; cursor:pointer; font-size:18px; padding:0 0 0 10px; }
 
-    .hint {
-      text-align: center; color: #443d66; font-size: 13px;
-      margin-top: 16px; padding: 20px;
-      background: #16122a; border-radius: 16px; border: 1px solid #2e2860;
-    }
-    .empty {
-      text-align: center; color: #332a55; font-size: 14px;
-      margin-top: 40px; padding: 40px 20px;
-    }
-    .empty-icon { font-size: 40px; margin-bottom: 12px; }
+    .hint { text-align:center; color:#443d66; font-size:13px; margin-top:16px; padding:20px; background:#16122a; border-radius:16px; border:1px solid #2e2860; }
+    .empty { text-align:center; color:#332a55; font-size:14px; margin-top:40px; padding:40px 20px; }
+
+    .toast { position:fixed; top:80px; left:50%; transform:translateX(-50%); padding:10px 22px; border-radius:30px; font-size:14px; z-index:100; box-shadow:0 4px 24px rgba(0,0,0,.5); white-space:nowrap; pointer-events:none; transition:opacity .3s; }
+    .toast.ok { background:#1a2a3a; border:1px solid #7c6af7; color:#b8aaff; }
+    .toast.err { background:#3a1a2a; border:1px solid #e05577; color:#f07090; }
   </style>
 </head>
 <body>
 
-<div id="root"></div>
+<div class="header">
+  <div style="font-size:26px">⚖️</div>
+  <div>
+    <h1>体重トラッカー</h1>
+    <div class="sub">Weight Tracker</div>
+  </div>
+</div>
+
+<div class="main">
+  <div id="toast" class="toast ok" style="display:none"></div>
+
+  <div class="cards">
+    <div class="card w">
+      <div class="card-label" style="color:#7c6af7">現在の体重</div>
+      <div id="cur-val" class="card-val" style="color:#e8e0ff">--</div>
+      <div class="card-unit">kg</div>
+      <div id="cur-date" class="card-sub" style="color:#554d88"></div>
+    </div>
+    <div class="card g" onclick="startEditGoal()">
+      <div class="card-label" style="color:#4caf80">目標体重</div>
+      <div id="goal-val" class="card-val" style="color:#a0f0c0">--</div>
+      <div class="card-unit">kg</div>
+      <div id="goal-diff" class="card-sub"></div>
+    </div>
+  </div>
+
+  <div id="goal-editor" class="goal-editor" style="display:none">
+    <div style="font-size:13px;color:#4caf80;margin-bottom:10px">目標体重を設定</div>
+    <div class="goal-row">
+      <input class="goal-inp" type="number" step="0.1" placeholder="例: 65.0" id="goal-input" />
+      <button class="btn btn-save" onclick="saveGoal()">保存</button>
+      <button class="btn btn-cancel" onclick="cancelGoal()">✕</button>
+    </div>
+  </div>
+
+  <div class="input-card">
+    <div class="input-label">今日の体重を記録</div>
+    <input type="date" id="date-input" />
+    <div class="input-row">
+      <input type="number" class="w-inp" id="weight-input" step="0.1" placeholder="体重 (kg)" />
+      <button class="btn btn-rec" onclick="addEntry()">記録</button>
+    </div>
+  </div>
+
+  <div id="chart-section" class="chart-card" style="display:none">
+    <div class="chart-title">📈 グラフ</div>
+    <canvas id="chart" height="180"></canvas>
+  </div>
+
+  <div id="hint" class="hint" style="display:none">もう1件記録するとグラフが表示されます</div>
+
+  <div class="history" id="history-section" style="display:none">
+    <div class="history-title">📋 記録一覧</div>
+    <div id="history-list"></div>
+  </div>
+
+  <div id="empty" class="empty">
+    <div style="font-size:40px;margin-bottom:12px">⚖️</div>
+    <div>最初の体重を記録しましょう</div>
+  </div>
+</div>
 
 <script>
-// ---- PWA Service Worker (inline) ----
-if ('serviceWorker' in navigator) {
-  const swCode = `
-    const CACHE = 'weight-tracker-v1';
-    self.addEventListener('install', e => {
-      e.waitUntil(caches.open(CACHE).then(c => c.addAll(['/'])));
-      self.skipWaiting();
-    });
-    self.addEventListener('fetch', e => {
-      e.respondWith(
-        fetch(e.request).catch(() => caches.match(e.request))
-      );
-    });
-  `;
-  const blob = new Blob([swCode], { type: 'application/javascript' });
-  const swUrl = URL.createObjectURL(blob);
-  navigator.serviceWorker.register(swUrl);
+const KEY = 'weight-tracker-data';
+let data = JSON.parse(localStorage.getItem(KEY) || '{"goal":null,"entries":[]}');
+
+function save() { localStorage.setItem(KEY, JSON.stringify(data)); }
+
+function fmt(d) { const x=new Date(d); return `${x.getMonth()+1}/${x.getDate()}`; }
+function today() { return new Date().toISOString().slice(0,10); }
+
+document.getElementById('date-input').value = today();
+
+function showToast(msg, type='ok') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = `toast ${type}`; t.style.display = 'block';
+  setTimeout(() => t.style.display='none', 2200);
 }
 
-// ---- App ----
-const { useState, useEffect, useCallback } = React;
-const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer } = Recharts;
-
-const STORAGE_KEY = "weight-tracker-data";
-
-function formatDate(dateStr) {
-  const d = new Date(dateStr);
-  return `${d.getMonth() + 1}/${d.getDate()}`;
+function startEditGoal() {
+  document.getElementById('goal-editor').style.display = 'block';
+  if (data.goal) document.getElementById('goal-input').value = data.goal;
+}
+function cancelGoal() { document.getElementById('goal-editor').style.display='none'; }
+function saveGoal() {
+  const g = parseFloat(document.getElementById('goal-input').value);
+  if (isNaN(g)||g<20||g>300) { showToast('目標体重を正しく入力してください','err'); return; }
+  data.goal = g; save(); cancelGoal(); render(); showToast('目標を設定しました！');
 }
 
-function today() {
-  return new Date().toISOString().slice(0, 10);
+function addEntry() {
+  const w = parseFloat(document.getElementById('weight-input').value);
+  const d = document.getElementById('date-input').value;
+  if (isNaN(w)||w<20||w>300) { showToast('体重を正しく入力してください','err'); return; }
+  data.entries = data.entries.filter(e=>e.date!==d);
+  data.entries.push({date:d, weight:w});
+  data.entries.sort((a,b)=>a.date.localeCompare(b.date));
+  save(); render();
+  document.getElementById('weight-input').value='';
+  showToast('記録しました！');
 }
 
-function loadData() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {}
-  return { goal: null, entries: [] };
+function deleteEntry(date) {
+  data.entries = data.entries.filter(e=>e.date!==date);
+  save(); render();
 }
 
-function saveData(data) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  } catch (e) {
-    console.error("Save failed", e);
+function drawChart() {
+  const canvas = document.getElementById('chart');
+  const W = canvas.parentElement.clientWidth - 32;
+  canvas.width = W * window.devicePixelRatio;
+  canvas.height = 180 * window.devicePixelRatio;
+  canvas.style.width = W + 'px';
+  canvas.style.height = '180px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+  const pad = {l:36, r:16, t:16, b:28};
+  const cw = W - pad.l - pad.r;
+  const ch = 180 - pad.t - pad.b;
+
+  const ws = data.entries.map(e=>e.weight);
+  let mn = Math.min(...ws) - 2;
+  let mx = Math.max(...ws) + 2;
+  if (data.goal) { mn = Math.min(mn, data.goal-2); mx = Math.max(mx, data.goal+2); }
+
+  const xp = i => pad.l + (i/(data.entries.length-1))*cw;
+  const yp = v => pad.t + (1-(v-mn)/(mx-mn))*ch;
+
+  // Grid
+  ctx.strokeStyle = '#1e1a40'; ctx.lineWidth = 1;
+  for (let i=0;i<4;i++) {
+    const y = pad.t + (ch/3)*i;
+    ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(pad.l+cw,y); ctx.stroke();
   }
-}
 
-function CustomTooltip({ active, payload, label }) {
-  if (active && payload && payload.length) {
-    return React.createElement('div', {
-      style: {
-        background: "#1a1a2e", border: "1px solid #7c6af7", borderRadius: 10,
-        padding: "8px 14px", color: "#fff", fontSize: 14
-      }
-    },
-      React.createElement('div', { style: { color: "#a89cf7", marginBottom: 2 } }, label),
-      React.createElement('div', { style: { fontWeight: 700, fontSize: 18 } },
-        payload[0].value,
-        React.createElement('span', { style: { fontSize: 12, color: "#aaa" } }, " kg")
-      )
-    );
+  // Goal line
+  if (data.goal) {
+    const gy = yp(data.goal);
+    ctx.strokeStyle='#4caf80'; ctx.lineWidth=1.5; ctx.setLineDash([4,3]);
+    ctx.beginPath(); ctx.moveTo(pad.l,gy); ctx.lineTo(pad.l+cw,gy); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='#4caf80'; ctx.font='10px sans-serif';
+    ctx.fillText(`目標 ${data.goal}kg`, pad.l+cw-60, gy-4);
   }
-  return null;
-}
 
-function App() {
-  const [data, setData] = useState(() => loadData());
-  const [weightInput, setWeightInput] = useState("");
-  const [dateInput, setDateInput] = useState(today());
-  const [goalInput, setGoalInput] = useState(() => {
-    const d = loadData();
-    return d.goal ? String(d.goal) : "";
+  // Line
+  ctx.strokeStyle='#7c6af7'; ctx.lineWidth=2.5; ctx.setLineDash([]);
+  ctx.beginPath();
+  data.entries.forEach((e,i)=>{ const x=xp(i),y=yp(e.weight); i===0?ctx.moveTo(x,y):ctx.lineTo(x,y); });
+  ctx.stroke();
+
+  // Dots
+  data.entries.forEach((e,i)=>{
+    ctx.fillStyle='#7c6af7';
+    ctx.beginPath(); ctx.arc(xp(i),yp(e.weight),4,0,Math.PI*2); ctx.fill();
   });
-  const [editingGoal, setEditingGoal] = useState(false);
-  const [toast, setToast] = useState(null);
 
-  const save = useCallback((newData) => {
-    setData(newData);
-    saveData(newData);
-  }, []);
+  // X labels
+  ctx.fillStyle='#554d88'; ctx.font='10px sans-serif'; ctx.textAlign='center';
+  const step = Math.ceil(data.entries.length/5);
+  data.entries.forEach((e,i)=>{ if(i%step===0||i===data.entries.length-1) ctx.fillText(fmt(e.date),xp(i),180-8); });
 
-  const showToast = (msg, type = "ok") => {
-    setToast({ msg, type, id: Date.now() });
-    setTimeout(() => setToast(null), 2200);
-  };
-
-  const addEntry = () => {
-    const w = parseFloat(weightInput);
-    if (isNaN(w) || w < 20 || w > 300) {
-      showToast("体重を正しく入力してください", "err");
-      return;
-    }
-    const newEntries = data.entries.filter(e => e.date !== dateInput);
-    newEntries.push({ date: dateInput, weight: w });
-    newEntries.sort((a, b) => a.date.localeCompare(b.date));
-    save({ ...data, entries: newEntries });
-    setWeightInput("");
-    showToast("記録しました！");
-  };
-
-  const saveGoal = () => {
-    const g = parseFloat(goalInput);
-    if (isNaN(g) || g < 20 || g > 300) {
-      showToast("目標体重を正しく入力してください", "err");
-      return;
-    }
-    save({ ...data, goal: g });
-    setEditingGoal(false);
-    showToast("目標を設定しました！");
-  };
-
-  const deleteEntry = (date) => {
-    save({ ...data, entries: data.entries.filter(e => e.date !== date) });
-  };
-
-  const latest = data.entries[data.entries.length - 1];
-  const diff = data.goal && latest ? (latest.weight - data.goal).toFixed(1) : null;
-
-  const chartData = data.entries.map(e => ({ date: formatDate(e.date), 体重: e.weight }));
-  const weights = data.entries.map(e => e.weight);
-  const minW = weights.length ? Math.min(...weights, data.goal || Infinity) - 3 : 40;
-  const maxW = weights.length ? Math.max(...weights, data.goal || -Infinity) + 3 : 100;
-
-  const h = React.createElement;
-
-  return h('div', null,
-    // Header
-    h('div', { className: 'header' },
-      h('div', { className: 'header-inner' },
-        h('div', { style: { fontSize: 26 } }, '⚖️'),
-        h('div', null,
-          h('h1', null, '体重トラッカー'),
-          h('div', { className: 'sub' }, 'Weight Tracker')
-        )
-      )
-    ),
-
-    h('div', { className: 'main' },
-
-      // Toast
-      toast && h('div', { className: `toast ${toast.type}`, key: toast.id }, toast.msg),
-
-      // Cards
-      h('div', { className: 'cards' },
-        // Current weight
-        h('div', { className: 'card weight' },
-          h('div', { className: 'card-label purple' }, '現在の体重'),
-          latest
-            ? h('div', null,
-                h('div', { className: 'card-value purple' }, latest.weight),
-                h('div', { className: 'card-unit' }, 'kg'),
-                h('div', { className: 'card-sub', style: { color: '#554d88' } }, formatDate(latest.date))
-              )
-            : h('div', { className: 'card-empty' }, '未記録')
-        ),
-        // Goal
-        h('div', { className: 'card goal', onClick: () => setEditingGoal(true) },
-          h('div', { className: 'card-label green' }, '目標体重'),
-          data.goal
-            ? h('div', null,
-                h('div', { className: 'card-value green' }, data.goal),
-                h('div', { className: 'card-unit' }, 'kg'),
-                diff !== null && h('div', {
-                  className: 'card-sub',
-                  style: { color: parseFloat(diff) <= 0 ? '#4caf80' : '#e05577' }
-                }, parseFloat(diff) <= 0 ? '目標達成！🎉' : `あと ${diff} kg`)
-              )
-            : h('div', { className: 'card-empty green' }, 'タップして設定')
-        )
-      ),
-
-      // Goal editor
-      editingGoal && h('div', { className: 'goal-editor' },
-        h('div', { className: 'goal-editor-label' }, '目標体重を設定'),
-        h('div', { className: 'goal-editor-row' },
-          h('input', {
-            className: 'goal-input', type: 'number', step: '0.1',
-            placeholder: '例: 65.0', value: goalInput,
-            onChange: e => setGoalInput(e.target.value)
-          }),
-          h('button', { className: 'btn-save', onClick: saveGoal }, '保存'),
-          h('button', { className: 'btn-cancel', onClick: () => setEditingGoal(false) }, '✕')
-        )
-      ),
-
-      // Input
-      h('div', { className: 'input-card' },
-        h('div', { className: 'input-card-label' }, '今日の体重を記録'),
-        h('input', {
-          type: 'date', value: dateInput,
-          onChange: e => setDateInput(e.target.value)
-        }),
-        h('div', { className: 'input-row' },
-          h('input', {
-            type: 'number', className: 'weight-input', step: '0.1',
-            placeholder: '体重 (kg)', value: weightInput,
-            onChange: e => setWeightInput(e.target.value),
-            onKeyDown: e => e.key === 'Enter' && addEntry()
-          }),
-          h('button', { className: 'btn-record', onClick: addEntry }, '記録')
-        )
-      ),
-
-      // Chart
-      data.entries.length >= 2 && h('div', { className: 'chart-card' },
-        h('div', { className: 'chart-title' }, '📈 グラフ'),
-        h(ResponsiveContainer, { width: '100%', height: 200 },
-          h(LineChart, { data: chartData, margin: { top: 4, right: 14, left: -10, bottom: 0 } },
-            h(CartesianGrid, { strokeDasharray: '3 3', stroke: '#1e1a40' }),
-            h(XAxis, { dataKey: 'date', tick: { fill: '#554d88', fontSize: 11 }, axisLine: false, tickLine: false }),
-            h(YAxis, { domain: [minW, maxW], tick: { fill: '#554d88', fontSize: 11 }, axisLine: false, tickLine: false }),
-            h(Tooltip, { content: h(CustomTooltip) }),
-            data.goal && h(ReferenceLine, {
-              y: data.goal, stroke: '#4caf80', strokeDasharray: '4 3', strokeWidth: 1.5,
-              label: { value: `目標 ${data.goal}kg`, fill: '#4caf80', fontSize: 10, position: 'insideTopRight' }
-            }),
-            h(Line, {
-              type: 'monotone', dataKey: '体重', stroke: '#7c6af7',
-              strokeWidth: 2.5, dot: { fill: '#7c6af7', r: 4, strokeWidth: 0 },
-              activeDot: { r: 6, fill: '#e8e0ff' }
-            })
-          )
-        )
-      ),
-
-      data.entries.length === 1 && h('div', { className: 'hint' }, 'もう1件記録するとグラフが表示されます'),
-
-      // History
-      data.entries.length > 0 && h('div', { className: 'history' },
-        h('div', { className: 'history-title' }, '📋 記録一覧'),
-        h('div', { className: 'history-list' },
-          [...data.entries].reverse().map(e =>
-            h('div', { className: 'history-item', key: e.date },
-              h('div', { className: 'history-date' }, e.date),
-              h('div', { className: 'history-weight' }, e.weight, h('span', null, ' kg')),
-              data.goal && h('div', {
-                className: `history-diff ${e.weight <= data.goal ? 'good' : 'bad'}`
-              }, e.weight <= data.goal ? '✓ 達成' : `+${(e.weight - data.goal).toFixed(1)}`),
-              h('button', { className: 'btn-delete', onClick: () => deleteEntry(e.date) }, '✕')
-            )
-          )
-        )
-      ),
-
-      data.entries.length === 0 && h('div', { className: 'empty' },
-        h('div', { className: 'empty-icon' }, '⚖️'),
-        h('div', null, '最初の体重を記録しましょう')
-      )
-    )
-  );
+  // Y labels
+  ctx.textAlign='right';
+  for(let i=0;i<=3;i++){
+    const v = mn + (mx-mn)*(1-i/3);
+    ctx.fillText(v.toFixed(1), pad.l-4, pad.t+(ch/3)*i+4);
+  }
 }
 
-ReactDOM.render(React.createElement(App), document.getElementById('root'));
+function render() {
+  const entries = data.entries;
+  const latest = entries[entries.length-1];
+
+  // Current
+  if (latest) {
+    document.getElementById('cur-val').textContent = latest.weight;
+    document.getElementById('cur-date').textContent = fmt(latest.date);
+  } else {
+    document.getElementById('cur-val').textContent = '--';
+    document.getElementById('cur-date').textContent = '';
+  }
+
+  // Goal
+  document.getElementById('goal-val').textContent = data.goal || '--';
+  const diffEl = document.getElementById('goal-diff');
+  if (data.goal && latest) {
+    const d = (latest.weight - data.goal).toFixed(1);
+    diffEl.textContent = parseFloat(d)<=0 ? '目標達成！🎉' : `あと ${d} kg`;
+    diffEl.style.color = parseFloat(d)<=0 ? '#4caf80' : '#e05577';
+  } else diffEl.textContent = '';
+
+  // Chart
+  if (entries.length >= 2) {
+    document.getElementById('chart-section').style.display='block';
+    document.getElementById('hint').style.display='none';
+    drawChart();
+  } else if (entries.length===1) {
+    document.getElementById('chart-section').style.display='none';
+    document.getElementById('hint').style.display='block';
+  } else {
+    document.getElementById('chart-section').style.display='none';
+    document.getElementById('hint').style.display='none';
+  }
+
+  // Empty
+  document.getElementById('empty').style.display = entries.length===0 ? 'block' : 'none';
+
+  // History
+  const hs = document.getElementById('history-section');
+  const hl = document.getElementById('history-list');
+  if (entries.length>0) {
+    hs.style.display='block';
+    hl.innerHTML = [...entries].reverse().map(e=>{
+      const diff = data.goal ? (e.weight-data.goal).toFixed(1) : null;
+      const diffHtml = diff ? `<div class="h-diff" style="color:${parseFloat(diff)<=0?'#4caf80':'#e05577'}">${parseFloat(diff)<=0?'✓ 達成':'+'+diff}</div>` : '';
+      return `<div class="history-item">
+        <div class="h-date">${e.date}</div>
+        <div class="h-val">${e.weight}<span> kg</span></div>
+        ${diffHtml}
+        <button class="btn-del" onclick="deleteEntry('${e.date}')">✕</button>
+      </div>`;
+    }).join('');
+  } else {
+    hs.style.display='none';
+  }
+}
+
+render();
+window.addEventListener('resize', ()=>{ if(data.entries.length>=2) drawChart(); });
 </script>
 </body>
 </html>
